@@ -48,10 +48,9 @@ def init_ccache_as_regular_user(principal, ccache):
     cmd = 'kinit -c %(ccache_file)s %(principal)s' % args
     cmd_to_execute = cmd.split()
 
-    __init_lock.acquire()
-    kinit_proc = subprocess.Popen(cmd_to_execute, stderr=subprocess.PIPE)
-    stdout_data, stderr_data = kinit_proc.communicate()
-    __init_lock.release()
+    with __init_lock:
+        kinit_proc = subprocess.Popen(cmd_to_execute, stderr=subprocess.PIPE)
+        stdout_data, stderr_data = kinit_proc.communicate()
 
     if kinit_proc.returncode > 0:
         raise KRB5InitError(stderr_data[:stderr_data.find('\n')])
@@ -64,10 +63,9 @@ def init_ccache_with_keytab(principal, keytab, ccache):
 
     Return the filename of newly initialized credential cache.
     '''
-    __init_lock.acquire()
-    ccache.init(principal)
-    ccache.init_creds_keytab(principal=principal, keytab=keytab)
-    __init_lock.release()
+    with __init_lock:
+        ccache.init(principal)
+        ccache.init_creds_keytab(principal=principal, keytab=keytab)
     return ccache.name
 
 
@@ -98,7 +96,7 @@ def is_initialize_ccache_necessary(context, ccache, principal):
     '''
     try:
         cred_time = get_tgt_time(context, ccache, principal)
-    except krbV.Krb5Error, err:
+    except krbV.Krb5Error as err:
         # Credentials cache does not exist. In this case, initialize
         # credential cache is required.
         monitor_errors = (krbV.KRB5_FCC_NOFILE,
