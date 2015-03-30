@@ -15,16 +15,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from contextlib import contextmanager
-from datetime import datetime
-from utils import get_tgt_time
-from utils import get_login
-from threading import Lock
-
 import krbV
 import os
+import shlex
 import sys
-import subprocess
+
+from contextlib import contextmanager
+from datetime import datetime
+from subprocess import PIPE
+from subprocess import Popen
+from threading import Lock
+from utils import get_login
+from utils import get_tgt_time
 
 
 __all__ = ('krbcontext', 'KRB5InitError')
@@ -44,15 +46,13 @@ def init_ccache_as_regular_user(principal, ccache):
 
     Return the filename of newly initialized credential cache
     '''
-    args = {'principal': principal.name, 'ccache_file': ccache.name}
-    cmd = 'kinit -c %(ccache_file)s %(principal)s' % args
-    cmd_to_execute = cmd.split()
+    cmd = 'kinit -c {0} {1}'.format(ccache.name, principal.name)
 
     with __init_lock:
-        kinit_proc = subprocess.Popen(cmd_to_execute, stderr=subprocess.PIPE)
-        stdout_data, stderr_data = kinit_proc.communicate()
+        proc = Popen(shlex.split(cmd), stderr=PIPE)
+        stdout_data, stderr_data = proc.communicate()
 
-    if kinit_proc.returncode > 0:
+    if proc.returncode > 0:
         raise KRB5InitError(stderr_data[:stderr_data.find('\n')])
 
     return ccache.name
