@@ -4,11 +4,6 @@
 
 cd "$(dirname $(realpath "$0"))/.."
 
-release_dir=release
-
-[ -e "${release_dir}" ] && rm -rf "${release_dir}"
-mkdir "${release_dir}"
-
 name=$(python3 -c "
 from configparser import ConfigParser
 cfg = ConfigParser()
@@ -40,4 +35,3 @@ sed -i "s/^version = [0-9]\+.[0-9]\+$/version = ${rel_ver}/" setup.cfg
 update_changelog_rst
 make doc
 python3 setup.py sdist
-mv "dist/${name}-${rel_ver}.tar.gz" "${release_dir}"
