@@ -2,26 +2,18 @@
 
 # This script requires a virtual environment with requirements installed.
 
-cd "$(dirname $(realpath "$0"))/.."
+script_dir="$(dirname $(realpath "$0"))"
 
-name=$(python3 -c "
-from configparser import ConfigParser
-cfg = ConfigParser()
-cfg.read('setup.cfg')
-print(cfg.get('package', 'name'))
-")
-rel_ver=$(python -c "
-from configparser import ConfigParser
-cfg = ConfigParser()
-cfg.read('setup.cfg')
-print(float(cfg.get('package', 'version')) + 0.1)
-")
+. "$script_dir/util.sh"
+
+cd "$script_dir/.."
+
 rel_date=$(date --rfc-3339='date')
 changelog_items=$(git log --format="- %s (%an)" HEAD..."$(git describe --tags --abbrev=0)")
 
 function update_changelog_rst
 {
-    local -r changelog_head="${rel_ver} (${rel_date})"
+    local -r changelog_head="${package_rel_ver} (${rel_date})"
     local -r sep_line=$(python -c "print('-' * len('${changelog_head}'))")
     echo "${changelog_head}
 ${sep_line}
@@ -31,7 +23,7 @@ ${changelog_items}
 }
 
 # Bump version
-sed -i "s/^version = [0-9]\+.[0-9]\+$/version = ${rel_ver}/" setup.cfg
+sed -i "s/^version = [0-9]\+.[0-9]\+$/version = ${package_rel_ver}/" setup.cfg
 update_changelog_rst
 make doc
 python3 setup.py sdist
